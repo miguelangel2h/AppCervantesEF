@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CEIP Cervantes - Control de Alumnos e Indicadores</title>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<style>
+:root{--bg:#EDF1F7;--card:#fff;--ink:#14213D;--mute:#5B6B82;--line:#D3DBE8;--brand:#1D4E89;--onbrand:#fff;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0F1724;--card:#17233A;--ink:#E8EEF8;--mute:#93A3BC;--line:#2A3A57;--brand:#6EA8FF;--onbrand:#0F1724}}
+:root[data-theme="dark"]{--bg:#0F1724;--card:#17233A;--ink:#E8EEF8;--mute:#93A3BC;--line:#2A3A57;--brand:#6EA8FF;--onbrand:#0F1724}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{background:var(--bg);color:var(--ink);font-family:'Atkinson Hyperlegible',system-ui,sans-serif;margin:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:1rem}
+.mute{color:var(--mute)}
+.inp{width:100%;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:.55rem .75rem;font:inherit}
+.inp:focus,.btn:focus-visible{outline:3px solid var(--brand);outline-offset:1px}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:.55rem .9rem;font:inherit;font-weight:700;cursor:pointer}
+.btn-p{background:var(--brand);color:var(--onbrand);border-color:var(--brand)}
+.btn-d{color:#C62828;border-color:#C62828}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.tab{padding:.6rem 1rem;border-radius:10px;font-weight:700;cursor:pointer;border:0;background:transparent;color:var(--mute);font:inherit;font-weight:700}
+.tab[aria-selected=true]{background:var(--brand);color:var(--onbrand)}
+.sn{min-width:84px;padding:.7rem 1rem;border-radius:12px;font:inherit;font-weight:700;font-size:1.05rem;border:2px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;transition:transform .12s}
+.sn:active{transform:scale(.95)}
+.sn.yes.on{background:#16E05A;border-color:#0B9A3B;color:#05290F;animation:spark 1s ease-in-out infinite}
+.sn.no.on{background:#E5252A;border-color:#8E1014;color:#fff;box-shadow:0 0 0 3px rgba(229,37,42,.35)}
+@keyframes spark{0%,100%{box-shadow:0 0 6px 2px rgba(22,224,90,.55)}50%{box-shadow:0 0 22px 8px rgba(22,224,90,.95)}}
+@media (prefers-reduced-motion:reduce){.sn.yes.on{animation:none;box-shadow:0 0 14px 4px rgba(22,224,90,.8)}}
+table{border-collapse:collapse}th,td{border:1px solid var(--line);padding:.35rem .5rem;text-align:center;font-size:.85rem}
+th.f,td.f{position:sticky;left:0;background:var(--card);text-align:left;min-width:150px;max-width:190px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useMemo,useRef}=React;
+const KEY='cervantes_v1';
+const DEF=['Asistencia y puntualidad','Trae el material necesario','Realiza las tareas','Participa en clase','Respeta las normas de convivencia','Trato respetuoso con compañeros y docentes','Atención y trabajo autónomo','Cuida el material y el aula'];
+const uid=()=>Math.random().toString(36).slice(2,9);
+const today=()=>new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
+const fresh=()=>({groups:[],students:[],indicators:DEF.map(t=>({id:uid(),text:t})),records:{},logo:''});
+const load=()=>{try{const s=localStorage.getItem(KEY);return s?{...fresh(),...JSON.parse(s)}:fresh()}catch(e){return fresh()}};
+const fmt=d=>d.split('-').reverse().join('/');
+
+function Logo({src,onFile}){
+  const ref=useRef();
+  const pick=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>onFile(r.result);r.readAsDataURL(f)};
+  return <button className="shrink-0" title="Cambiar logo (clic)" aria-label="Cambiar logo del colegio" onClick={()=>ref.current.click()} style={{background:'none',border:0,cursor:'pointer'}}>
+    <input ref={ref} type="file" accept="image/*" hidden onChange={pick}/>
+    {src?<img src={src} alt="Logo del colegio" style={{height:64,maxWidth:120,objectFit:'contain'}}/>:
+    <svg width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="Logo CEIP Cervantes">
+      <path d="M32 3 57 12v18c0 14-10 25-25 31C17 55 7 44 7 30V12z" fill="#1D4E89"/>
+      <path d="M32 24c-5-4-12-4-17-2v20c5-2 12-2 17 2 5-4 12-4 17-2V22c-5-2-12-2-17 2z" fill="#F4C430"/>
+      <path d="M32 24v20" stroke="#1D4E89" strokeWidth="2"/>
+      <text x="32" y="58" textAnchor="middle" fontSize="7" fontWeight="700" fill="#fff">CERVANTES</text>
+    </svg>}
+  </button>;
+}
+
+function Registro({d,setD,gid,setGid,sid,setSid,date,setDate}){
+  const studs=d.students.filter(s=>s.groupId===gid);
+  const idx=studs.findIndex(s=>s.id===sid);
+  const key=sid+'|'+date;
+  const [draft,setDraft]=useState({});
+  const [msg,setMsg]=useState('');
+  useEffect(()=>{setDraft(d.records[key]||{});setMsg(d.records[key]?'Ya hay una evaluación guardada para este día':'')},[sid,date]);
+  const setV=(i,v)=>{setMsg('');setDraft(x=>{const n={...x};if(n[i]===v)delete n[i];else n[i]=v;return n})};
+  const save=next=>{setD(p=>({...p,records:{...p.records,[key]:draft}}));setMsg('✔ Guardado');if(next&&idx<studs.length-1)setSid(studs[idx+1].id)};
+  const done=d.indicators.filter(i=>draft[i.id]!==undefined).length;
+  if(!d.groups.length)return <div className="card">Primero crea un grupo y añade alumnado en la pestaña <b>Grupos</b>.</div>;
+  return <div className="space-y-4">
+    <div className="card grid gap-3 sm:grid-cols-3">
+      <label className="block"><span className="mute text-sm">Grupo</span>
+        <select className="inp" value={gid} onChange={e=>setGid(e.target.value)}>{d.groups.map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</select></label>
+      <label className="block"><span className="mute text-sm">Fecha</span>
+        <input type="date" className="inp" value={date} onChange={e=>setDate(e.target.value)}/></label>
+      <label className="block"><span className="mute text-sm">Alumno/a</span>
+        <select className="inp" value={sid} onChange={e=>setSid(e.target.value)}>{studs.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
+    </div>
+    {!studs.length?<div className="card">Este grupo aún no tiene alumnado. Impórtalo en <b>Grupos</b>.</div>:<>
+    <div className="flex items-center justify-between gap-2">
+      <button className="btn" disabled={idx<=0} onClick={()=>setSid(studs[idx-1].id)}>‹ Anterior</button>
+      <div className="text-center"><div className="text-xl font-bold">{studs[idx]?.name}</div><div className="mute text-sm">Alumno {idx+1} de {studs.length} · {done}/{d.indicators.length} indicadores</div></div>
+      <button className="btn" disabled={idx>=studs.length-1} onClick={()=>setSid(studs[idx+1].id)}>Siguiente ›</button>
+    </div>
+    <div className="card space-y-3">
+      {d.indicators.map(i=><div key={i.id} className="flex flex-wrap items-center justify-between gap-3 pb-3" style={{borderBottom:'1px solid var(--line)'}}>
+        <span className="font-bold flex-1" style={{minWidth:200}}>{i.text}</span>
+        <div className="flex gap-2">
+          <button className={'sn yes'+(draft[i.id]===true?' on':'')} aria-pressed={draft[i.id]===true} onClick={()=>setV(i.id,true)}>SÍ</button>
+          <button className={'sn no'+(draft[i.id]===false?' on':'')} aria-pressed={draft[i.id]===false} onClick={()=>setV(i.id,false)}>NO</button>
+        </div></div>)}
+      {!d.indicators.length&&<p className="mute">No hay indicadores activos. Añádelos en la pestaña Indicadores.</p>}
+      <div className="flex flex-wrap items-center gap-2 pt-1">
+        <button className="btn btn-p" onClick={()=>save(false)}>Guardar evaluación</button>
+        <button className="btn" disabled={idx>=studs.length-1} onClick={()=>save(true)}>Guardar y pasar al siguiente</button>
+        <span className="mute" role="status">{msg}</span>
+      </div>
+    </div></>}
+  </div>;
+}
+
+function Grupos({d,setD,gid,setGid}){
+  const [name,setName]=useState('');const [txt,setTxt]=useState('');const [info,setInfo]=useState('');const [arm,setArm]=useState('');
+  const studs=d.students.filter(s=>s.groupId===gid);
+  const addG=()=>{const n=name.trim();if(!n)return;const g={id:uid(),name:n};setD(p=>({...p,groups:[...p.groups,g]}));setGid(g.id);setName('')};
+  const delG=id=>{if(arm!==id){setArm(id);return}setArm('');const ids=d.students.filter(s=>s.groupId===id).map(s=>s.id);
+    setD(p=>({...p,groups:p.groups.filter(g=>g.id!==id),students:p.students.filter(s=>s.groupId!==id),records:Object.fromEntries(Object.entries(p.records).filter(([k])=>!ids.includes(k.split('|')[0])))}));
+    if(gid===id)setGid('')};
+  const delS=id=>{if(arm!==id){setArm(id);return}setArm('');setD(p=>({...p,students:p.students.filter(s=>s.id!==id),records:Object.fromEntries(Object.entries(p.records).filter(([k])=>k.split('|')[0]!==id))}))};
+  const imp=()=>{const have=new Set(studs.map(s=>s.name.toLowerCase()));
+    const lines=txt.split(/\r?\n/).map(l=>l.replace(/^\s*(\d+\s*[.)\-]|[-•*])\s*/,'').trim()).filter(Boolean);
+    const add=[];let dup=0;lines.forEach(l=>{if(have.has(l.toLowerCase())){dup++}else{have.add(l.toLowerCase());add.push({id:uid(),groupId:gid,name:l})}});
+    setD(p=>({...p,students:[...p.students,...add]}));setTxt('');setInfo(add.length+' alumnos añadidos'+(dup?' ('+dup+' repetidos omitidos)':''))};
+  return <div className="grid gap-4 md:grid-cols-2">
+    <div className="card space-y-3">
+      <h2 className="text-lg font-bold">Grupos</h2>
+      <div className="flex gap-2"><input className="inp" placeholder="Ej.: 1º Primaria A" value={name} onChange={e=>setName(e.target.value)} onKeyDown={e=>e.key==='Enter'&&addG()}/><button className="btn btn-p" onClick={addG}>Crear grupo</button></div>
+      {d.groups.map(g=><div key={g.id} className="flex items-center justify-between gap-2">
+        <button className="btn flex-1 text-left" style={g.id===gid?{borderColor:'var(--brand)',borderWidth:2}:{}} onClick={()=>setGid(g.id)}>{g.name} <span className="mute font-normal">({d.students.filter(s=>s.groupId===g.id).length})</span></button>
+        <button className="btn btn-d" onClick={()=>delG(g.id)}>{arm===g.id?'¿Seguro?':'Borrar'}</button></div>)}
+      {!d.groups.length&&<p className="mute">Aún no hay grupos. Crea el primero.</p>}
+    </div>
+    <div className="card space-y-3">
+      <h2 className="text-lg font-bold">Importar alumnado {gid&&<span className="mute font-normal">en {d.groups.find(g=>g.id===gid)?.name}</span>}</h2>
+      <textarea className="inp" rows="8" placeholder={'Pega aquí la lista, un alumno por línea:\nAna García López\nLucas Pérez Ruiz'} value={txt} onChange={e=>setTxt(e.target.value)}/>
+      <div className="flex items-center gap-3"><button className="btn btn-p" disabled={!gid||!txt.trim()} onClick={imp}>Importar al grupo</button><span className="mute" role="status">{gid?info:'Selecciona o crea un grupo'}</span></div>
+      <div style={{maxHeight:240,overflowY:'auto'}} className="space-y-1">
+        {studs.map(s=><div key={s.id} className="flex items-center justify-between"><span>{s.name}</span><button className="btn btn-d" style={{padding:'.15rem .6rem'}} onClick={()=>delS(s.id)}>{arm===s.id?'¿Seguro?':'✕'}</button></div>)}
+      </div>
+    </div>
+  </div>;
+}
+
+function Indicadores({d,setD}){
+  const [n,setN]=useState('');const [arm,setArm]=useState('');
+  const upd=(id,t)=>setD(p=>({...p,indicators:p.indicators.map(i=>i.id===id?{...i,text:t}:i)}));
+  const del=id=>{if(arm!==id){setArm(id);return}setArm('');setD(p=>({...p,indicators:p.indicators.filter(i=>i.id!==id)}))};
+  const add=()=>{const t=n.trim();if(!t)return;setD(p=>({...p,indicators:[...p.indicators,{id:uid(),text:t}]}));setN('')};
+  return <div className="card space-y-3 max-w-3xl">
+    <h2 className="text-lg font-bold">Indicadores de evaluación</h2>
+    <p className="mute text-sm">Edita el enunciado directamente. Los cambios se guardan al escribir.</p>
+    {d.indicators.map(i=><div key={i.id} className="flex gap-2"><input className="inp" aria-label="Enunciado del indicador" value={i.text} onChange={e=>upd(i.id,e.target.value)}/><button className="btn btn-d" onClick={()=>del(i.id)}>{arm===i.id?'¿Seguro?':'Eliminar'}</button></div>)}
+    <div className="flex gap-2"><input className="inp" placeholder="Nuevo indicador" value={n} onChange={e=>setN(e.target.value)} onKeyDown={e=>e.key==='Enter'&&add()}/><button className="btn btn-p" onClick={add}>Añadir</button></div>
+  </div>;
+}
+
+function Resumen({d,gid,setGid,sid,setSid}){
+  const [a,setA]=useState('');const [b,setB]=useState('');
+  const studs=d.students.filter(s=>s.groupId===gid);
+  const rows=useMemo(()=>Object.entries(d.records).filter(([k])=>k.split('|')[0]===sid).map(([k,r])=>[k.split('|')[1],r]).filter(([dt])=>(!a||dt>=a)&&(!b||dt<=b)).sort((x,y)=>x[0]<y[0]?-1:1),[d.records,sid,a,b]);
+  const stat=ids=>{let y=0,n=0;rows.forEach(([,r])=>ids.forEach(i=>{if(r[i]===true)y++;else if(r[i]===false)n++}));return{y,n,t:y+n,p:y+n?Math.round(y*100/(y+n)):0}};
+  const all=stat(d.indicators.map(i=>i.id));
+  const Bar=({s})=><div style={{display:'flex',height:14,borderRadius:7,overflow:'hidden',background:'var(--line)'}}><div style={{width:s.p+'%',background:'#16A34A'}}/><div style={{width:(s.t?100-s.p:0)+'%',background:'#E5252A'}}/></div>;
+  if(!d.groups.length)return <div className="card">Crea un grupo y registra evaluaciones para ver resúmenes.</div>;
+  return <div className="space-y-4">
+    <div className="card grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <label className="block"><span className="mute text-sm">Grupo</span><select className="inp" value={gid} onChange={e=>setGid(e.target.value)}>{d.groups.map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</select></label>
+      <label className="block"><span className="mute text-sm">Alumno/a</span><select className="inp" value={sid} onChange={e=>setSid(e.target.value)}>{studs.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
+      <label className="block"><span className="mute text-sm">Fecha inicio</span><input type="date" className="inp" value={a} onChange={e=>setA(e.target.value)}/></label>
+      <label className="block"><span className="mute text-sm">Fecha fin</span><input type="date" className="inp" value={b} onChange={e=>setB(e.target.value)}/></label>
+    </div>
+    {!sid?<div className="card">Selecciona un alumno.</div>:!rows.length?<div className="card">No hay evaluaciones guardadas en este periodo.</div>:<>
+    <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+      <div className="card"><div className="mute text-sm">Total SÍ</div><div className="text-3xl font-bold" style={{color:'#16A34A'}}>{all.y}</div></div>
+      <div className="card"><div className="mute text-sm">Total NO</div><div className="text-3xl font-bold" style={{color:'#E5252A'}}>{all.n}</div></div>
+      <div className="card"><div className="mute text-sm">Cumplimiento</div><div className="text-3xl font-bold">{all.p}%</div></div>
+      <div className="card"><div className="mute text-sm">Días evaluados</div><div className="text-3xl font-bold">{rows.length}</div></div>
+    </div>
+    <div className="card space-y-3">
+      <h3 className="font-bold">Cumplimiento global: {all.p}% positivos · {all.t?100-all.p:0}% negativos</h3><Bar s={all}/>
+      <h3 className="font-bold pt-2">Por indicador</h3>
+      {d.indicators.map(i=>{const s=stat([i.id]);return <div key={i.id}><div className="flex justify-between text-sm"><span>{i.text}</span><span className="mute">{s.y} SÍ / {s.n} NO · {s.p}%</span></div><Bar s={s}/></div>})}
+    </div>
+    <div className="card"><h3 className="font-bold mb-2">Historial por fecha</h3>
+      <div style={{overflowX:'auto'}}><table><thead><tr><th className="f">Indicador</th>{rows.map(([dt])=><th key={dt}>{fmt(dt)}</th>)}</tr></thead>
+      <tbody>{d.indicators.map(i=><tr key={i.id}><td className="f">{i.text}</td>{rows.map(([dt,r])=><td key={dt} style={{fontWeight:700,color:r[i.id]===true?'#16A34A':r[i.id]===false?'#E5252A':'var(--mute)'}}>{r[i.id]===true?'SÍ':r[i.id]===false?'NO':'–'}</td>)}</tr>)}</tbody></table></div>
+    </div></>}
+  </div>;
+}
+
+function App(){
+  const [d,setD]=useState(load);
+  const [tab,setTab]=useState('reg');
+  const [gid,setGid]=useState('');const [sid,setSid]=useState('');const [date,setDate]=useState(today());
+  useEffect(()=>{try{localStorage.setItem(KEY,JSON.stringify(d))}catch(e){}},[d]);
+  useEffect(()=>{if(!d.groups.find(g=>g.id===gid))setGid(d.groups[0]?.id||'')},[d.groups,gid]);
+  useEffect(()=>{const s=d.students.filter(x=>x.groupId===gid);if(!s.find(x=>x.id===sid))setSid(s[0]?.id||'')},[d.students,gid,sid]);
+  const tabs=[['reg','Registro diario'],['grp','Grupos'],['ind','Indicadores'],['res','Resumen por alumno']];
+  const sel={gid,setGid,sid,setSid};
+  return <div style={{paddingBottom:70}}>
+    <header style={{background:'var(--card)',borderBottom:'1px solid var(--line)'}}>
+      <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+        <h1 className="text-xl sm:text-2xl font-bold" style={{color:'var(--brand)'}}>CEIP Cervantes - Control de Alumnos e Indicadores</h1>
+        <Logo src={d.logo} onFile={l=>setD(p=>({...p,logo:l}))}/>
+      </div>
+    </header>
+    <main className="max-w-5xl mx-auto px-4 py-4 space-y-4">
+      <nav role="tablist" className="flex flex-wrap gap-1 card" style={{padding:'.35rem'}}>{tabs.map(([k,l])=><button key={k} role="tab" className="tab" aria-selected={tab===k} onClick={()=>setTab(k)}>{l}</button>)}</nav>
+      {tab==='reg'&&<Registro d={d} setD={setD} {...sel} date={date} setDate={setDate}/>}
+      {tab==='grp'&&<Grupos d={d} setD={setD} gid={gid} setGid={setGid}/>}
+      {tab==='ind'&&<Indicadores d={d} setD={setD}/>}
+      {tab==='res'&&<Resumen d={d} {...sel}/>}
+    </main>
+    <footer className="mute text-sm text-center" style={{position:'fixed',left:0,right:0,bottom:0,background:'var(--card)',borderTop:'1px solid var(--line)',padding:'.5rem .5rem calc(.5rem + env(safe-area-inset-bottom,0px))'}}>Autor: Miguel Ángel González Lozano</footer>
+  </div>;
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
