@@ -1,0 +1,13 @@
+{
+    "name": "super-saltarin",
+    "version": "1.0.0",
+    "description": "Videojuego de plataformas para micro:bit inspirado en los clásicos de saltar y pisar enemigos",
+    "dependencies": {
+        "core": "*"
+    },
+    "files": [
+        "README.md",
+        "main.ts"
+    ],
+    "preferredEditor": "tsprj"
+}
