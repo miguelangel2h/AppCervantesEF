@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Molinos de Silencio</title>
+<meta name="description" content="Control del ruido en clase con temporizador y música de YouTube, inspirado en Miguel de Cervantes y Don Quijote.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=IM+Fell+English+SC&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M26 60 L30 30 L34 30 L38 60Z' fill='%237A4E1D'/%3E%3Cg fill='%239B2C1F'%3E%3Crect x='30' y='4' width='4' height='24'/%3E%3Crect x='30' y='4' width='4' height='24' transform='rotate(90 32 28)'/%3E%3Crect x='30' y='4' width='4' height='24' transform='rotate(180 32 28)'/%3E%3Crect x='30' y='4' width='4' height='24' transform='rotate(270 32 28)'/%3E%3C/g%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#EFE4CB; --paper:#FBF5E6; --paper2:#F5EBD4; --ink:#2B1D0E; --mute:#6B5638; --line:#D8C59E;
+  --brand:#7A4E1D; --onbrand:#FFF8EA; --crimson:#9B2C1F; --gold:#A8770A;
+  --calm:#3F7A34; --warn:#B7790B; --loud:#B3261E;
+  --sky-calm:#BFD9E8; --sky-warn:#F1D49A; --sky-loud:#E9A08F;
+  --hill1:#C9B27A; --hill2:#A8925A; --mill:#F7F0DF; --roof:#8A3B22; --blade:#6B4A2A;
+  --shadow:0 1px 0 rgba(255,255,255,.6) inset, 0 6px 18px rgba(74,48,16,.12);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#17120C; --paper:#231B12; --paper2:#2C2217; --ink:#F1E6CF; --mute:#BFA982; --line:#4A3A26;
+    --brand:#D9A45A; --onbrand:#1C140B; --crimson:#E07563; --gold:#E2B54B;
+    --calm:#7CC46B; --warn:#E9B13E; --loud:#F0705F;
+    --sky-calm:#25384A; --sky-warn:#4A3A1C; --sky-loud:#4E2420;
+    --hill1:#4A3D25; --hill2:#3A2F1C; --mill:#D9CCB0; --roof:#8A3B22; --blade:#B88B5A;
+    --shadow:0 6px 18px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+    --bg:#17120C; --paper:#231B12; --paper2:#2C2217; --ink:#F1E6CF; --mute:#BFA982; --line:#4A3A26;
+    --brand:#D9A45A; --onbrand:#1C140B; --crimson:#E07563; --gold:#E2B54B;
+    --calm:#7CC46B; --warn:#E9B13E; --loud:#F0705F;
+    --sky-calm:#25384A; --sky-warn:#4A3A1C; --sky-loud:#4E2420;
+    --hill1:#4A3D25; --hill2:#3A2F1C; --mill:#D9CCB0; --roof:#8A3B22; --blade:#B88B5A;
+    --shadow:0 6px 18px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{
+  background:var(--bg);color:var(--ink);
+  font-family:'EB Garamond',Georgia,serif;font-size:18px;line-height:1.4;
+  padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-area-inset-bottom,0) env(safe-area-inset-left,0);
+  min-height:100vh;
+}
+h1,h2,h3,.fell{font-family:'IM Fell English SC',Georgia,serif;font-weight:400;letter-spacing:.01em}
+.wrap{max-width:1240px;margin:0 auto;padding:16px}
+header.top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+header.top .ttl{flex:1;min-width:220px}
+header.top h1{margin:0;font-size:clamp(1.6rem,3.6vw,2.4rem);line-height:1.05;color:var(--crimson)}
+header.top p{margin:.15rem 0 0;color:var(--mute);font-style:italic}
+.quill{width:46px;height:46px;flex:none}
+.grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:1fr}}
+.col{display:flex;flex-direction:column;gap:16px;min-width:0}
+.card{
+  background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--shadow);
+  position:relative;
+}
+.card h2{margin:0 0 10px;font-size:1.35rem;display:flex;align-items:center;gap:8px;color:var(--brand)}
+.card h2 svg{width:22px;height:22px;flex:none}
+.mute{color:var(--mute)}
+.small{font-size:.9rem}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{
+  font:inherit;font-weight:600;font-size:1rem;border-radius:10px;padding:.5rem .9rem;cursor:pointer;
+  border:1px solid var(--line);background:var(--paper2);color:var(--ink);min-height:42px;
+  transition:transform .1s, background .2s;
+}
+.btn:hover{background:var(--paper)}
+.btn:active{transform:scale(.97)}
+.btn:focus-visible,.inp:focus-visible,input[type=range]:focus-visible,.song button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.btn-p{background:var(--brand);color:var(--onbrand);border-color:var(--brand)}
+.btn-p:hover{background:var(--brand);filter:brightness(1.08)}
+.btn-r{background:var(--crimson);color:#fff;border-color:var(--crimson)}
+.btn-sm{min-height:34px;padding:.3rem .65rem;font-size:.92rem}
+.btn[aria-pressed=true]{background:var(--brand);color:var(--onbrand);border-color:var(--brand)}
+.inp{font:inherit;width:100%;padding:.5rem .7rem;border-radius:10px;border:1px solid var(--line);background:var(--paper2);color:var(--ink);min-height:42px}
+label.sw{display:flex;align-items:center;gap:.55rem;cursor:pointer;user-select:none}
+label.sw input{width:20px;height:20px;accent-color:var(--brand)}
+input[type=range]{width:100%;accent-color:var(--brand)}
+
+/* ---------- Escena del molino ---------- */
+.scene{border-radius:12px;overflow:hidden;border:1px solid var(--line);background:var(--sky-calm);transition:background .6s}
+.scene svg{display:block;width:100%;height:auto}
+.scene[data-state=warn]{background:var(--sky-warn)}
+.scene[data-state=loud]{background:var(--sky-loud)}
+.scene .eyes{opacity:0;transition:opacity .35s}
+.scene[data-state=loud] .eyes{opacity:1}
+.scene[data-state=loud] .millbody{animation:shake .25s linear infinite}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-1.5px)}75%{transform:translateX(1.5px)}}
+@media (prefers-reduced-motion:reduce){.scene[data-state=loud] .millbody{animation:none}}
+
+.status{display:flex;align-items:center;gap:14px;margin:14px 0 8px;flex-wrap:wrap}
+.badge{font-family:'IM Fell English SC',serif;font-size:clamp(1.4rem,3vw,2rem);line-height:1.1;color:var(--calm);transition:color .3s;flex:1;min-width:200px}
+.status[data-state=warn] .badge{color:var(--warn)}
+.status[data-state=loud] .badge{color:var(--loud)}
+.lvl{font-variant-numeric:tabular-nums lining-nums;font-size:2.4rem;font-weight:700;line-height:1;min-width:3ch;text-align:right}
+.lvl small{font-size:1rem;font-weight:400;color:var(--mute)}
+.quote{margin:0;font-style:italic;color:var(--mute);min-height:1.4em}
+
+.meter{position:relative;height:26px;border-radius:13px;background:var(--paper2);border:1px solid var(--line);overflow:hidden;margin:12px 0 6px}
+.meter .fill{position:absolute;inset:0 auto 0 0;width:0%;background:var(--calm);border-radius:13px;transition:background .25s}
+.meter[data-state=warn] .fill{background:var(--warn)}
+.meter[data-state=loud] .fill{background:var(--loud)}
+.meter .mark{position:absolute;top:-2px;bottom:-2px;width:3px;background:var(--ink);opacity:.55}
+.meter .mark.w{opacity:.3}
+.legend{display:flex;justify-content:space-between;font-size:.85rem;color:var(--mute)}
+
+.mic-cta{display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;padding:10px 0 2px}
+
+/* Yelmos */
+.helmets{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 8px}
+.helmet{width:44px;height:44px;transition:opacity .4s, transform .4s, filter .4s}
+.helmet.lost{opacity:.2;filter:grayscale(1);transform:scale(.85) rotate(-12deg)}
+.helmet.pop{animation:pop .6s ease}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.35) rotate(10deg)}100%{transform:scale(.85) rotate(-12deg)}}
+
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+.stat{background:var(--paper2);border:1px solid var(--line);border-radius:10px;padding:8px;text-align:center}
+.stat b{display:block;font-size:1.4rem;font-variant-numeric:tabular-nums lining-nums}
+.stat span{font-size:.82rem;color:var(--mute)}
+
+/* Temporizador */
+.timer{font-variant-numeric:tabular-nums lining-nums;font-weight:700;font-size:clamp(3.2rem,9vw,5rem);line-height:1;text-align:center;margin:4px 0 6px;letter-spacing:.02em}
+.timer.done{color:var(--crimson);animation:blink 1s steps(2) 6}
+@keyframes blink{50%{opacity:.25}}
+.tbar{height:8px;border-radius:4px;background:var(--paper2);border:1px solid var(--line);overflow:hidden;margin-bottom:10px}
+.tbar div{height:100%;width:100%;background:var(--gold);transition:width .3s linear}
+.presets .btn{flex:1;min-width:58px}
+
+/* Música */
+.yt-wrap{position:relative;aspect-ratio:16/9;border-radius:10px;overflow:hidden;background:#000;border:1px solid var(--line);margin:10px 0}
+.yt-wrap iframe,.yt-wrap #yt{position:absolute;inset:0;width:100%;height:100%}
+.yt-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:16px;color:#e8dcc2;font-style:italic;background:repeating-linear-gradient(45deg,#2a1f14,#2a1f14 10px,#30241a 10px,#30241a 20px)}
+.songs{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:6px;max-height:220px;overflow:auto}
+.song{display:flex;align-items:center;gap:6px;background:var(--paper2);border:1px solid var(--line);border-radius:10px;padding:4px 4px 4px 10px}
+.song.on{border-color:var(--brand);box-shadow:0 0 0 2px var(--brand) inset}
+.song .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;background:none;border:0;color:inherit;font:inherit;text-align:left;padding:6px 0}
+.song .x{background:none;border:0;color:var(--mute);font-size:1.3rem;cursor:pointer;width:34px;height:34px;border-radius:8px}
+.song .x:hover{color:var(--crimson)}
+.err{color:var(--crimson);font-size:.92rem;min-height:1.2em;margin:.3rem 0 0}
+
+details.cfg summary{cursor:pointer;font-weight:600;color:var(--brand);padding:4px 0}
+.cfg .fld{margin:10px 0}
+.cfg .fld label{display:flex;justify-content:space-between;font-size:.95rem}
+
+footer{text-align:center;color:var(--mute);font-style:italic;padding:18px 0 8px;font-size:.95rem}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* Toast */
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(calc(100% + 40px));visibility:hidden;background:var(--crimson);color:#fff;padding:12px 18px;border-radius:12px;font-weight:600;box-shadow:0 10px 30px rgba(0,0,0,.3);transition:transform .35s,visibility .35s;z-index:20;max-width:calc(100% - 32px);text-align:center}
+.toast.show{transform:translateX(-50%) translateY(0);visibility:visible}
+
+/* Pantalla completa: dar más protagonismo al molino */
+body.fs .wrap{max-width:none}
+body.fs .lvl{font-size:3.2rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <svg class="quill" viewBox="0 0 64 64" aria-hidden="true">
+      <path d="M56 4C38 8 22 22 14 44l-4 14 3 1 4-12C30 34 44 20 56 4z" fill="var(--paper)" stroke="var(--brand)" stroke-width="2.5" stroke-linejoin="round"/>
+      <path d="M50 10C40 18 30 28 20 42" fill="none" stroke="var(--brand)" stroke-width="1.6"/>
+      <path d="M6 60h20" stroke="var(--crimson)" stroke-width="3" stroke-linecap="round"/>
+    </svg>
+    <div class="ttl">
+      <h1>Molinos de Silencio</h1>
+      <p>Control del ruido en clase · Con Miguel de Cervantes y Don Quijote de la Mancha</p>
+    </div>
+    <div class="row">
+      <button class="btn" id="btnTheme" title="Cambiar tema claro / oscuro">◐ Tema</button>
+      <button class="btn" id="btnFs" title="Pantalla completa">⛶ Pantalla completa</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <!-- ======== Columna izquierda: medidor ======== -->
+    <div class="col">
+      <section class="card" aria-labelledby="h-meter">
+        <h2 id="h-meter">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10v4M7 7v10M11 4v16M15 8v8M19 11v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+          El sonómetro de La Mancha
+        </h2>
+
+        <div class="scene" id="scene" data-state="calm">
+          <svg viewBox="0 0 400 240" role="img" aria-label="Molino de viento cuyas aspas giran más rápido cuanto más ruido hay">
+            <!-- sol -->
+            <circle cx="335" cy="48" r="22" fill="var(--gold)" opacity=".85"/>
+            <!-- nubes -->
+            <g fill="var(--paper)" opacity=".75">
+              <ellipse cx="70" cy="40" rx="30" ry="10"/><ellipse cx="92" cy="34" rx="20" ry="9"/>
+              <ellipse cx="270" cy="70" rx="24" ry="7"/>
+            </g>
+            <!-- colinas -->
+            <path d="M0 190 Q90 150 190 182 T400 170 V240 H0Z" fill="var(--hill1)"/>
+            <path d="M0 212 Q120 186 230 210 T400 204 V240 H0Z" fill="var(--hill2)"/>
+            <!-- molinos lejanos -->
+            <g opacity=".55" fill="var(--mill)" stroke="var(--blade)" stroke-width="1">
+              <path d="M40 176 l4 -22 h8 l4 22z"/><path d="M42 154 l6 -7 l6 7z" fill="var(--roof)"/>
+              <path d="M345 170 l4 -20 h7 l4 20z"/><path d="M347 150 l5.5 -6 l5.5 6z" fill="var(--roof)"/>
+            </g>
+            <g id="bladesSmall1" transform="translate(48 152)" stroke="var(--blade)" stroke-width="2" opacity=".55">
+              <line x1="0" y1="-14" x2="0" y2="14"/><line x1="-14" y1="0" x2="14" y2="0"/>
+            </g>
+            <g id="bladesSmall2" transform="translate(352.5 148)" stroke="var(--blade)" stroke-width="2" opacity=".55">
+              <line x1="0" y1="-13" x2="0" y2="13"/><line x1="-13" y1="0" x2="13" y2="0"/>
+            </g>
+            <!-- molino principal / gigante -->
+            <g class="millbody">
+              <path d="M170 205 L178 98 H222 L230 205Z" fill="var(--mill)" stroke="var(--blade)" stroke-width="2"/>
+              <path d="M172 100 L200 70 L228 100Z" fill="var(--roof)" stroke="var(--blade)" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M192 205 v-26 a8 8 0 0 1 16 0 v26z" fill="var(--blade)"/>
+              <rect x="194" y="124" width="12" height="14" rx="2" fill="var(--blade)" class="window"/>
+            </g>
+            <g id="blades" transform="translate(200 92)">
+              <g stroke="var(--blade)" stroke-width="1.6" fill="var(--paper)">
+                <g><rect x="-4" y="-82" width="8" height="74" rx="2" fill="var(--blade)"/><rect x="4" y="-80" width="16" height="64" fill-opacity=".85"/><path d="M4 -64 h16 M4 -48 h16 M4 -32 h16 M12 -80 v64"/></g>
+                <g transform="rotate(90)"><rect x="-4" y="-82" width="8" height="74" rx="2" fill="var(--blade)"/><rect x="4" y="-80" width="16" height="64" fill-opacity=".85"/><path d="M4 -64 h16 M4 -48 h16 M4 -32 h16 M12 -80 v64"/></g>
+                <g transform="rotate(180)"><rect x="-4" y="-82" width="8" height="74" rx="2" fill="var(--blade)"/><rect x="4" y="-80" width="16" height="64" fill-opacity=".85"/><path d="M4 -64 h16 M4 -48 h16 M4 -32 h16 M12 -80 v64"/></g>
+                <g transform="rotate(270)"><rect x="-4" y="-82" width="8" height="74" rx="2" fill="var(--blade)"/><rect x="4" y="-80" width="16" height="64" fill-opacity=".85"/><path d="M4 -64 h16 M4 -48 h16 M4 -32 h16 M12 -80 v64"/></g>
+              </g>
+              <circle r="7" fill="var(--roof)" stroke="var(--blade)" stroke-width="2"/>
+            </g>
+            <g class="millbody">
+              <!-- cara de gigante (aparece con mucho ruido) -->
+              <g class="eyes">
+                <path d="M181 118 l14 6 M219 118 l-14 6" stroke="var(--loud)" stroke-width="3.2" stroke-linecap="round"/>
+                <circle cx="189" cy="130" r="4.5" fill="var(--loud)"/><circle cx="211" cy="130" r="4.5" fill="var(--loud)"/>
+                <path d="M186 158 q14 -10 28 0" stroke="var(--loud)" stroke-width="3" fill="none" stroke-linecap="round"/>
+              </g>
+            </g>
+            <!-- Don Quijote con su lanza (silueta sencilla) -->
+            <g transform="translate(300 196)" fill="var(--ink)" opacity=".8">
+              <!-- caballo -->
+              <path d="M-22 0 l3 -14 q2 -6 10 -6 h18 q4 -6 8 -8 l3 -6 l2 5 q3 2 2 6 l-4 2 l-3 9 l2 12 h-3 l-3 -11 h-16 l-3 11 h-3 l1 -11 l-4 0 l-3 11z"/>
+              <!-- jinete -->
+              <path d="M-4 -20 l2 -16 q1 -4 4 -4 q4 0 3 5 l-2 15z"/>
+              <circle cx="1" cy="-44" r="3.5"/>
+              <path d="M-3 -47 h9 l-4.5 -4z"/>
+              <!-- lanza -->
+              <path d="M2 -30 L-62 -54" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/>
+              <!-- escudo -->
+              <ellipse cx="-3" cy="-28" rx="4" ry="6" fill="var(--crimson)"/>
+            </g>
+          </svg>
+        </div>
+
+        <div id="micArea">
+          <div class="mic-cta" id="micCta">
+            <p class="mute" style="margin:0">Para medir el ruido, la aplicación necesita usar el micrófono. El sonido no se graba ni se envía a ningún sitio.</p>
+            <button class="btn btn-p" id="btnMic" style="font-size:1.1rem;padding:.65rem 1.3rem">🎙️ Activar el sonómetro</button>
+            <p class="err" id="micErr" role="alert"></p>
+          </div>
+          <div id="micLive" hidden>
+            <div class="status" id="status" data-state="calm">
+              <div class="badge" id="badge" aria-live="polite">Silencio en La Mancha</div>
+              <div class="lvl"><span id="lvl">0</span><small>/100</small></div>
+            </div>
+            <p class="quote" id="quote">«Al buen callar llaman Sancho.»</p>
+            <div class="meter" id="meter" data-state="calm" aria-hidden="true">
+              <div class="fill" id="fill"></div>
+              <div class="mark w" id="markW"></div>
+              <div class="mark" id="markL"></div>
+            </div>
+            <div class="legend"><span>Silencio</span><span>Murmullo</span><span>¡Gigantes!</span></div>
+            <div class="row" style="margin-top:10px">
+              <button class="btn btn-sm" id="btnPauseMic" aria-pressed="false">⏸ Pausar medidor</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="h-helm">
+        <h2 id="h-helm">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 15a8 8 0 0 1 16 0h2v2H2v-2z" fill="currentColor"/></svg>
+          Los yelmos de Mambrino
+        </h2>
+        <p class="mute small" style="margin:0 0 6px">La clase empieza con todos sus yelmos. Cada vez que aparecen los gigantes (ruido en rojo durante un rato) se pierde uno.</p>
+        <div class="helmets" id="helmets" aria-live="polite"></div>
+        <div class="row">
+          <button class="btn btn-sm" id="btnHelmReset">↺ Recuperar yelmos</button>
+          <button class="btn btn-sm" id="btnHelmPlus" title="Devolver un yelmo">＋ Devolver uno</button>
+        </div>
+        <div class="stats">
+          <div class="stat"><b id="stCalm">—</b><span>del tiempo en calma</span></div>
+          <div class="stat"><b id="stGiants">0</b><span>gigantes avistados</span></div>
+          <div class="stat"><b id="stTime">0:00</b><span>de sesión</span></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ======== Columna derecha ======== -->
+    <div class="col">
+      <section class="card" aria-labelledby="h-timer">
+        <h2 id="h-timer">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h12v2c0 4-4 6-4 8s4 4 4 8v2H6v-2c0-4 4-6 4-8S6 8 6 4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 20h6l-3-3z" fill="currentColor"/></svg>
+          El reloj de arena
+        </h2>
+        <div class="timer" id="timer" role="timer" aria-live="off">05:00</div>
+        <div class="tbar"><div id="tbar"></div></div>
+        <div class="row presets" style="margin-bottom:8px">
+          <button class="btn btn-sm" data-min="1">1′</button>
+          <button class="btn btn-sm" data-min="5">5′</button>
+          <button class="btn btn-sm" data-min="10">10′</button>
+          <button class="btn btn-sm" data-min="15">15′</button>
+          <button class="btn btn-sm" data-min="30">30′</button>
+        </div>
+        <div class="row" style="margin-bottom:8px">
+          <button class="btn btn-sm" id="tMinus">−1 min</button>
+          <button class="btn btn-sm" id="tPlus">+1 min</button>
+          <label class="small mute" for="tCustom" style="margin-left:auto">Minutos:</label>
+          <input class="inp" id="tCustom" type="number" min="1" max="180" value="5" style="width:80px;min-height:34px;padding:.25rem .5rem">
+        </div>
+        <div class="row">
+          <button class="btn btn-p" id="tStart" style="flex:2">▶ Empezar</button>
+          <button class="btn" id="tReset" style="flex:1">↺ Reiniciar</button>
+        </div>
+        <label class="sw small" style="margin-top:10px"><input type="checkbox" id="tStopMusic"> Al acabar, parar la música</label>
+      </section>
+
+      <section class="card" aria-labelledby="h-music">
+        <h2 id="h-music">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l11-2v13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="6" cy="18" r="3" fill="currentColor"/><circle cx="17" cy="16" r="3" fill="currentColor"/></svg>
+          La música del escudero
+        </h2>
+        <form id="ytForm" class="row" autocomplete="off">
+          <label for="ytUrl" class="sr">Enlace de YouTube</label>
+          <input class="inp" id="ytUrl" placeholder="Pega un enlace de YouTube (vídeo o lista)" style="flex:1;min-width:180px">
+          <button class="btn btn-p" type="submit">Añadir</button>
+        </form>
+        <p class="err" id="ytErr" role="alert"></p>
+        <div class="yt-wrap">
+          <div id="yt"></div>
+          <div class="yt-empty" id="ytEmpty">Añade una canción de YouTube para que suene durante la clase.</div>
+        </div>
+        <div class="row">
+          <button class="btn btn-sm" id="mPlay">▶ Reproducir</button>
+          <button class="btn btn-sm" id="mNext" title="Siguiente canción">⏭ Siguiente</button>
+          <label class="small mute" for="mVol" style="margin-left:auto">Volumen</label>
+          <input type="range" id="mVol" min="0" max="100" value="60" style="width:120px">
+        </div>
+        <label class="sw small" style="margin-top:8px"><input type="checkbox" id="mDuck"> Bajar la música cuando aparezcan los gigantes</label>
+        <label class="sw small" style="margin-top:4px"><input type="checkbox" id="mLoop" checked> Repetir la lista</label>
+        <ul class="songs" id="songs" aria-label="Lista de canciones"></ul>
+      </section>
+
+      <section class="card" aria-labelledby="h-cfg">
+        <details class="cfg">
+          <summary id="h-cfg">⚙ Ajustes del sonómetro</summary>
+          <div class="fld">
+            <label for="sSens"><span>Sensibilidad del micrófono</span><b id="vSens">5</b></label>
+            <input type="range" id="sSens" min="1" max="10" step="1" value="5">
+          </div>
+          <div class="fld">
+            <label for="sLimit"><span>Límite de ruido (¡gigantes!)</span><b id="vLimit">65</b></label>
+            <input type="range" id="sLimit" min="25" max="95" step="1" value="65">
+          </div>
+          <div class="fld">
+            <label for="sTol"><span>Segundos de ruido antes de perder un yelmo</span><b id="vTol">2</b></label>
+            <input type="range" id="sTol" min="0.5" max="6" step="0.5" value="2">
+          </div>
+          <div class="fld">
+            <label for="sHelm"><span>Número de yelmos</span><b id="vHelm">5</b></label>
+            <input type="range" id="sHelm" min="1" max="10" step="1" value="5">
+          </div>
+          <label class="sw small"><input type="checkbox" id="sBeep" checked> Sonido de aviso al perder un yelmo</label>
+          <p class="mute small" style="margin:.6rem 0 0">Consejo: con la clase en silencio, sube la sensibilidad hasta que el medidor marque un poco, y coloca el límite donde quieras que empiece el «rojo».</p>
+        </details>
+      </section>
+    </div>
+  </div>
+
+  <footer>«En un lugar de la Mancha, de cuyo nombre no quiero acordarme…» — Miguel de Cervantes</footer>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function(){
+'use strict';
+const $ = id => document.getElementById(id);
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+
+/* ---------------- Persistencia ---------------- */
+const KEY = 'molinos_silencio_v1';
+const DEFAULTS = { sens:5, limit:65, tol:2, helmets:5, beep:true, duck:false, loop:true, vol:60, stopMusic:false, minutes:5, songs:[], theme:'' };
+let S = Object.assign({}, DEFAULTS);
+try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(S, JSON.parse(raw)); } catch(e){}
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){} }
+
+/* ---------------- Tema ---------------- */
+function applyTheme(){ if (S.theme) document.documentElement.setAttribute('data-theme', S.theme); else document.documentElement.removeAttribute('data-theme'); }
+applyTheme();
+$('btnTheme').onclick = () => {
+  const dark = S.theme ? S.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  S.theme = dark ? 'light' : 'dark'; applyTheme(); save();
+};
+$('btnFs').onclick = () => {
+  if (!document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(()=>{});
+  else document.exitFullscreen?.();
+};
+document.addEventListener('fullscreenchange', () => document.body.classList.toggle('fs', !!document.fullscreenElement));
+
+/* ---------------- Toast ---------------- */
+let toastT;
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'), 3200); }
+
+/* ---------------- Audio (avisos) ---------------- */
+let actx = null;
+function ctx(){ if (!actx) actx = new (window.AudioContext||window.webkitAudioContext)(); if (actx.state==='suspended') actx.resume(); return actx; }
+function tone(freq, start, dur, type='sine', gain=.25){
+  const c = ctx(), o = c.createOscillator(), g = c.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(0, c.currentTime+start);
+  g.gain.linearRampToValueAtTime(gain, c.currentTime+start+.02);
+  g.gain.exponentialRampToValueAtTime(.001, c.currentTime+start+dur);
+  o.connect(g).connect(c.destination); o.start(c.currentTime+start); o.stop(c.currentTime+start+dur+.05);
+}
+function fanfare(){ [523,659,784,1047].forEach((f,i)=>tone(f, i*.18, .5, 'triangle', .22)); tone(1047, .8, 1.1, 'triangle', .2); }
+function warnSound(){ tone(196, 0, .35, 'sawtooth', .12); tone(147, .3, .5, 'sawtooth', .12); }
+
+/* ---------------- Citas ---------------- */
+const Q = {
+  calm: [
+    '«Al buen callar llaman Sancho.» (Quijote, II, 43)',
+    '«El que lee mucho y anda mucho, ve mucho y sabe mucho.» (II, 25)',
+    '«La diligencia es madre de la buena ventura.» (II, 43)',
+    '«Cada uno es artífice de su ventura.» (II, 66)',
+    '«Donde una puerta se cierra, otra se abre.» (I, 21)',
+    '«Llaneza, muchacho, no te encumbres, que toda afectación es mala.» (II, 26)'
+  ],
+  warn: [
+    'Se levanta el viento… y las aspas empiezan a girar.',
+    '«Mire vuestra merced que aquellos que allí se parecen no son gigantes, sino molinos de viento.» (I, 8)',
+    'Sancho avisa: si seguimos así, despertarán los gigantes.'
+  ],
+  loud: [
+    '«Non fuyades, cobardes y viles criaturas, que un solo caballero es el que os acomete.» (I, 8)',
+    '¡Los molinos se han convertido en gigantes! Bajemos la voz.',
+    '¡Por Dulcinea del Toboso, que vuelva el silencio!'
+  ]
+};
+const LABEL = { calm:'Silencio en La Mancha', warn:'Se levanta el viento', loud:'¡Gigantes a la vista!' };
+const pick = a => a[Math.floor(Math.random()*a.length)];
+
+/* ---------------- Yelmos ---------------- */
+let helmLeft = S.helmets;
+const HELM_SVG = '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M6 30a18 18 0 0 1 36 0z" fill="var(--gold)" stroke="var(--brand)" stroke-width="2"/><path d="M2 30h44v5a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3z" fill="var(--gold)" stroke="var(--brand)" stroke-width="2"/><path d="M18 30a6 6 0 0 1 12 0" fill="var(--paper)" stroke="var(--brand)" stroke-width="2"/><path d="M24 12v-4" stroke="var(--brand)" stroke-width="3" stroke-linecap="round"/></svg>';
+function renderHelmets(popIndex){
+  const box = $('helmets'); box.innerHTML='';
+  for (let i=0;i<S.helmets;i++){
+    const d = document.createElement('div');
+    d.className = 'helmet' + (i>=helmLeft?' lost':'') + (i===popIndex?' pop':'');
+    d.innerHTML = HELM_SVG; box.appendChild(d);
+  }
+  box.setAttribute('aria-label', `Quedan ${helmLeft} de ${S.helmets} yelmos`);
+}
+renderHelmets();
+$('btnHelmReset').onclick = () => { helmLeft = S.helmets; renderHelmets(); toast('¡Yelmos recuperados! A por una nueva aventura.'); };
+$('btnHelmPlus').onclick = () => { if (helmLeft < S.helmets){ helmLeft++; renderHelmets(); } };
+function loseHelmet(){
+  if (helmLeft <= 0) return;
+  helmLeft--; renderHelmets(helmLeft);
+  if (S.beep) warnSound();
+  toast(helmLeft>0 ? `¡Los gigantes se llevaron un yelmo! Quedan ${helmLeft}.` : '¡Derrotados por los gigantes! Toca recuperar el silencio.');
+}
+
+/* ---------------- Ajustes ---------------- */
+function bindRange(id, key, out, fmt=v=>v){
+  const el = $(id); el.value = S[key]; $(out).textContent = fmt(S[key]);
+  el.oninput = () => { S[key] = parseFloat(el.value); $(out).textContent = fmt(S[key]); save(); onSettings(key); };
+}
+bindRange('sSens','sens','vSens');
+bindRange('sLimit','limit','vLimit');
+bindRange('sTol','tol','vTol', v=>String(v).replace('.',','));
+bindRange('sHelm','helmets','vHelm');
+$('sBeep').checked = S.beep; $('sBeep').onchange = e => { S.beep = e.target.checked; save(); };
+function onSettings(k){
+  if (k==='helmets'){ helmLeft = Math.min(helmLeft, S.helmets); if (k==='helmets' && helmLeft===0) helmLeft = S.helmets; renderHelmets(); }
+  placeMarks();
+}
+function placeMarks(){ $('markL').style.left = S.limit+'%'; $('markW').style.left = (S.limit*0.7)+'%'; }
+placeMarks();
+
+/* ---------------- Sonómetro ---------------- */
+let analyser=null, buf=null, stream=null, micPaused=false;
+let smooth=0, state='calm', loudSince=0, lastLoss=-Infinity;
+let sessStart=0, calmMs=0, totalMs=0, giants=0, lastT=0, quoteT=0;
+
+$('btnMic').onclick = async () => {
+  $('micErr').textContent='';
+  if (!navigator.mediaDevices?.getUserMedia){ $('micErr').textContent='Este navegador no permite usar el micrófono. Abre la app en Chrome, Edge o Firefox desde una dirección https.'; return; }
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio:{ echoCancellation:false, noiseSuppression:false, autoGainControl:false } });
+    const c = ctx();
+    const src = c.createMediaStreamSource(stream);
+    analyser = c.createAnalyser(); analyser.fftSize = 2048; analyser.smoothingTimeConstant = 0;
+    src.connect(analyser);
+    buf = new Float32Array(analyser.fftSize);
+    $('micCta').hidden = true; $('micLive').hidden = false;
+    sessStart = performance.now();
+  } catch(err){
+    $('micErr').textContent = err && err.name==='NotAllowedError'
+      ? 'Permiso denegado. Pulsa el candado de la barra de direcciones y permite el micrófono.'
+      : 'No se pudo abrir el micrófono: ' + (err && err.message || err);
+  }
+};
+$('btnPauseMic').onclick = e => {
+  micPaused = !micPaused; e.currentTarget.setAttribute('aria-pressed', micPaused);
+  e.currentTarget.textContent = micPaused ? '▶ Reanudar medidor' : '⏸ Pausar medidor';
+};
+
+function readLevel(){
+  analyser.getFloatTimeDomainData(buf);
+  let sum=0; for (let i=0;i<buf.length;i++) sum += buf[i]*buf[i];
+  const rms = Math.sqrt(sum/buf.length);
+  const db = 20*Math.log10(rms+1e-9) + (S.sens-5)*4;   // dBFS ajustado por sensibilidad
+  return clamp((db + 60) / 50 * 100, 0, 100);          // -60 dBFS → 0 · -10 dBFS → 100
+}
+
+function setState(s){
+  if (s===state) return;
+  state = s;
+  $('scene').dataset.state = s; $('status').dataset.state = s; $('meter').dataset.state = s;
+  $('badge').textContent = LABEL[s];
+  $('quote').textContent = pick(Q[s]); quoteT = performance.now();
+  applyDuck();
+}
+
+/* ---------------- Animación (molinos) ---------------- */
+let ang=0, angS=0;
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function frame(t){
+  const dt = lastT ? Math.min(100, t-lastT) : 16; lastT = t;
+  let lvl = 0;
+  if (analyser && !micPaused){
+    const raw = readLevel();
+    smooth += (raw - smooth) * (raw > smooth ? .3 : .06);
+    lvl = smooth;
+    const s = lvl >= S.limit ? 'loud' : lvl >= S.limit*0.7 ? 'warn' : 'calm';
+    setState(s);
+    if (s==='loud'){
+      if (!loudSince) loudSince = t;
+      if (t - loudSince >= S.tol*1000 && t - lastLoss > 5000){ lastLoss = t; loudSince = t; giants++; $('stGiants').textContent = giants; loseHelmet(); }
+    } else loudSince = 0;
+    totalMs += dt; if (s==='calm') calmMs += dt;
+    $('fill').style.width = lvl.toFixed(1)+'%';
+    $('lvl').textContent = Math.round(lvl);
+    if (t - quoteT > 12000){ $('quote').textContent = pick(Q[state]); quoteT = t; }
+  } else if (analyser && micPaused){ lvl = 0; }
+  // Velocidad de las aspas según el ruido (grados por segundo)
+  const speed = (reduce ? 4 : 10) + Math.pow(lvl/100, 1.6) * (reduce ? 120 : 900);
+  ang = (ang + speed*dt/1000) % 360; angS = (angS + (speed*.8)*dt/1000) % 360;
+  $('blades').setAttribute('transform', `translate(200 92) rotate(${ang.toFixed(2)})`);
+  $('bladesSmall1').setAttribute('transform', `translate(48 152) rotate(${angS.toFixed(2)})`);
+  $('bladesSmall2').setAttribute('transform', `translate(352.5 148) rotate(${(-angS).toFixed(2)})`);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+const fmt = ms => { const s = Math.max(0, Math.round(ms/1000)); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); };
+setInterval(() => {
+  if (!analyser) return;
+  $('stTime').textContent = fmt(performance.now()-sessStart);
+  $('stCalm').textContent = totalMs > 0 ? Math.round(calmMs/totalMs*100)+'%' : '—';
+}, 1000);
+
+/* ---------------- Temporizador ---------------- */
+let tTotal = S.minutes*60000, tLeft = tTotal, tEnd = 0, tRun = false, tInt = null;
+$('tCustom').value = S.minutes;
+$('tStopMusic').checked = S.stopMusic; $('tStopMusic').onchange = e => { S.stopMusic = e.target.checked; save(); };
+function tDraw(){
+  const s = Math.ceil(tLeft/1000), h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
+  $('timer').textContent = (h ? h+':'+String(m).padStart(2,'0') : String(m).padStart(2,'0')) + ':' + String(sec).padStart(2,'0');
+  $('tbar').style.width = (tTotal ? tLeft/tTotal*100 : 0) + '%';
+  $('tStart').textContent = tRun ? '⏸ Pausar' : (tLeft < tTotal && tLeft > 0 ? '▶ Continuar' : '▶ Empezar');
+  document.title = tRun ? `${$('timer').textContent} · Molinos de Silencio` : 'Molinos de Silencio';
+}
+function tSet(min){
+  min = clamp(Math.round(min), 1, 180);
+  tStop(); S.minutes = min; save(); $('tCustom').value = min;
+  tTotal = tLeft = min*60000; $('timer').classList.remove('done'); tDraw();
+}
+function tStop(){ tRun=false; clearInterval(tInt); }
+function tTick(){
+  tLeft = Math.max(0, tEnd - Date.now());
+  if (tLeft <= 0){
+    tStop(); tDraw();
+    $('timer').classList.remove('done'); void $('timer').offsetWidth; $('timer').classList.add('done');
+    fanfare(); toast('¡Tiempo cumplido, valeroso escudero!');
+    if (S.stopMusic && player && playerReady) player.pauseVideo();
+    return;
+  }
+  tDraw();
+}
+document.querySelectorAll('[data-min]').forEach(b => b.onclick = () => tSet(+b.dataset.min));
+$('tCustom').onchange = e => tSet(+e.target.value || 1);
+$('tPlus').onclick = () => adjust(60000);
+$('tMinus').onclick = () => adjust(-60000);
+function adjust(d){
+  if (tRun){ tEnd = Math.max(Date.now()+1000, tEnd + d); tTotal = Math.max(tTotal + d, tEnd-Date.now()); tTick(); }
+  else { tLeft = clamp(tLeft + d, 60000, 180*60000); tTotal = Math.max(tLeft, tTotal + d, 60000); if (tLeft===tTotal){ S.minutes=Math.round(tLeft/60000); $('tCustom').value=S.minutes; save(); } tDraw(); }
+}
+$('tStart').onclick = () => {
+  ctx(); // desbloquea el audio para la fanfarria final
+  if (tRun){ tStop(); tLeft = Math.max(0, tEnd - Date.now()); tDraw(); return; }
+  if (tLeft <= 0) tLeft = tTotal;
+  $('timer').classList.remove('done');
+  tEnd = Date.now() + tLeft; tRun = true; tInt = setInterval(tTick, 250); tDraw();
+};
+$('tReset').onclick = () => { tStop(); tLeft = tTotal; $('timer').classList.remove('done'); tDraw(); };
+tDraw();
+
+/* ---------------- Música (YouTube) ---------------- */
+let player = null, playerReady = false, current = -1, apiLoading = false, ducked = false;
+function parseYT(url){
+  url = (url||'').trim();
+  if (/^[\w-]{11}$/.test(url)) return { type:'video', id:url };
+  let u; try { u = new URL(url.startsWith('http') ? url : 'https://'+url); } catch(e){ return null; }
+  const host = u.hostname.replace(/^www\.|^m\.|^music\./,'');
+  const list = u.searchParams.get('list');
+  let id = null;
+  if (host === 'youtu.be') id = u.pathname.slice(1,12);
+  else if (/youtube(-nocookie)?\.com$/.test(host)){
+    id = u.searchParams.get('v');
+    const m = u.pathname.match(/\/(embed|shorts|live|v)\/([\w-]{11})/);
+    if (!id && m) id = m[2];
+  } else return null;
+  if (id && /^[\w-]{11}$/.test(id)) return { type:'video', id, list: list||undefined };
+  if (list) return { type:'list', id:list };
+  return null;
+}
+function renderSongs(){
+  const ul = $('songs'); ul.innerHTML = '';
+  S.songs.forEach((s,i) => {
+    const li = document.createElement('li'); li.className = 'song' + (i===current?' on':'');
+    const nm = document.createElement('button'); nm.className='nm';
+    nm.textContent = (s.type==='list' ? '📜 ' : '♪ ') + (s.title || (s.type==='list' ? 'Lista de reproducción' : 'Vídeo '+s.id));
+    nm.title = 'Reproducir'; nm.onclick = () => playSong(i);
+    const x = document.createElement('button'); x.className='x'; x.textContent='×'; x.title='Quitar'; x.setAttribute('aria-label','Quitar '+nm.textContent);
+    x.onclick = () => { S.songs.splice(i,1); if (current===i){ current=-1; } else if (current>i) current--; save(); renderSongs(); };
+    li.append(nm, x); ul.appendChild(li);
+  });
+  if (!S.songs.length){ const li=document.createElement('li'); li.className='mute small'; li.textContent='Aún no hay canciones. Busca una en YouTube, copia el enlace y pégalo arriba.'; ul.appendChild(li); }
+}
+function loadAPI(cb){
+  if (window.YT && window.YT.Player) return cb();
+  window._ytq = window._ytq || []; window._ytq.push(cb);
+  if (apiLoading) return; apiLoading = true;
+  window.onYouTubeIframeAPIReady = () => { (window._ytq||[]).forEach(f=>f()); window._ytq=[]; };
+  const s = document.createElement('script'); s.src = 'https://www.youtube.com/iframe_api';
+  s.onerror = () => { $('ytErr').textContent = 'No se pudo cargar YouTube. Comprueba la conexión a Internet.'; apiLoading=false; };
+  document.head.appendChild(s);
+}
+function playSong(i){
+  const s = S.songs[i]; if (!s) return;
+  current = i; renderSongs(); $('ytErr').textContent=''; $('ytEmpty').hidden = true;
+  loadAPI(() => {
+    if (!player){
+      const vars = { playsinline:1, rel:0, modestbranding:1, autoplay:1 };
+      const opts = { width:'100%', height:'100%', playerVars: vars, events:{
+        onReady: e => { playerReady = true; e.target.setVolume(S.vol); e.target.playVideo(); },
+        onStateChange: onYTState, onError: onYTError } };
+      if (s.type==='list'){ vars.listType='playlist'; vars.list=s.id; } else { opts.videoId = s.id; }
+      player = new YT.Player('yt', opts);
+    } else if (playerReady){
+      if (s.type==='list') player.loadPlaylist({ list:s.id, listType:'playlist' });
+      else player.loadVideoById(s.id);
+      player.setVolume(ducked ? Math.round(S.vol*.2) : S.vol);
+    }
+  });
+}
+function onYTState(e){
+  const st = e.data;
+  $('mPlay').textContent = st === YT.PlayerState.PLAYING ? '⏸ Pausar' : '▶ Reproducir';
+  if (st === YT.PlayerState.PLAYING){
+    const s = S.songs[current];
+    const title = player.getVideoData && player.getVideoData().title;
+    if (s && title && s.type==='video' && s.title !== title){ s.title = title; save(); renderSongs(); }
+    if (s && s.type==='list' && !s.title && title){ s.title = 'Lista: ' + title; save(); renderSongs(); }
+  }
+  if (st === YT.PlayerState.ENDED){
+    const s = S.songs[current];
+    if (s && s.type==='list') return; // la lista sigue sola
+    nextSong();
+  }
+}
+function onYTError(e){
+  const msg = { 2:'El enlace no es válido.', 5:'Este vídeo no se puede reproducir aquí.', 100:'El vídeo no existe o es privado.', 101:'El autor no permite verlo fuera de YouTube.', 150:'El autor no permite verlo fuera de YouTube.', 153:'YouTube necesita que la app se abra desde una web (https), no como archivo local.' }[e.data];
+  $('ytErr').textContent = (msg || 'Error de YouTube ('+e.data+').') + (S.songs.length>1 ? ' Pasamos a la siguiente.' : '');
+  if (S.songs.length > 1) setTimeout(nextSong, 2500);
+}
+function nextSong(){
+  if (!S.songs.length) return;
+  let n = current + 1;
+  if (n >= S.songs.length){ if (!S.loop) return; n = 0; }
+  playSong(n);
+}
+$('ytForm').onsubmit = e => {
+  e.preventDefault();
+  const r = parseYT($('ytUrl').value);
+  if (!r){ $('ytErr').textContent = 'Ese enlace no parece de YouTube. Ejemplo: https://www.youtube.com/watch?v=…'; return; }
+  if (S.songs.some(s => s.id===r.id)){ $('ytErr').textContent = 'Esa canción ya está en la lista.'; return; }
+  S.songs.push({ type:r.type, id:r.id }); save(); $('ytUrl').value=''; $('ytErr').textContent='';
+  playSong(S.songs.length-1);
+};
+$('mPlay').onclick = () => {
+  if (!player){ if (S.songs.length) playSong(current>=0?current:0); else $('ytErr').textContent='Primero añade una canción.'; return; }
+  if (!playerReady) return;
+  if (player.getPlayerState() === YT.PlayerState.PLAYING) player.pauseVideo(); else player.playVideo();
+};
+$('mNext').onclick = () => {
+  const s = S.songs[current];
+  if (player && playerReady && s && s.type==='list') player.nextVideo(); else nextSong();
+};
+$('mVol').value = S.vol;
+$('mVol').oninput = e => { S.vol = +e.target.value; save(); if (player && playerReady && !ducked) player.setVolume(S.vol); };
+$('mDuck').checked = S.duck; $('mDuck').onchange = e => { S.duck = e.target.checked; save(); applyDuck(); };
+$('mLoop').checked = S.loop; $('mLoop').onchange = e => { S.loop = e.target.checked; save(); if (player && playerReady) try{ player.setLoop(S.loop); }catch(_){} };
+let duckTimer = null;
+function applyDuck(){
+  const want = S.duck && state === 'loud';
+  if (want){
+    clearTimeout(duckTimer); duckTimer = null;
+    if (!ducked){ ducked = true; if (player && playerReady) player.setVolume(Math.round(S.vol*.2)); }
+  } else if (ducked && !duckTimer){
+    // espera un poco antes de volver a subir el volumen
+    duckTimer = setTimeout(() => { duckTimer=null; if (!(S.duck && state==='loud')){ ducked=false; if (player && playerReady) player.setVolume(S.vol); } }, 2500);
+  }
+}
+renderSongs();
+})();
+</script>
+</body>
+</html>
